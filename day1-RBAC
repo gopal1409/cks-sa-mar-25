@@ -1,0 +1,25 @@
+RBAC with role and role binding
+46  kubectl create ns red
+   47  kubectl create ns blue
+   48  source <(kubectl completion bash)
+   49  echo "source <(kubectl completion bash)" >> ~/.bashrc
+   50  alias k=kubectl
+   51  complete -o default -F __start_kubectl k
+   52  k config view
+
+   
+   55  k -n red create role secret-manager --verb=get --resource=secret -oyaml --dry-run=client
+
+   57  k -n red create rolebinding secret-manager --role=secret-manager --user=jane -oyaml --dry-run=client
+   58  k -n red create rolebinding secret-manager --role=secret-manager --user=jane
+   59  k -n blue create role secret-manager --verb=get --verb=list --resource=secret
+   60  k -n blue create rolebinding secret-manager --role=secret-manager --user=jane
+  
+   62  k -n red auth can-i get secret --as jane
+   63  k -n red auth can-i delete secret --as jane
+   64  k -n blue  auth can-i get secret --as jane
+   65  k -n blue  auth can-i list secret --as jane
+  #create a cluster role deploy-deleted which allows to delete deployment
+  user jane can delete deployment in all namespace
+  user jim can delete deployment only in namespace red
+  test it using auth-can-i
