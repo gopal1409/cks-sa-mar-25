@@ -23,3 +23,25 @@ RBAC with role and role binding
   user jane can delete deployment in all namespace
   user jim can delete deployment only in namespace red
   test it using auth-can-i
+###day 2 jane RBAC
+root@k8s-master-node:~# kubectl create clusterrolebinding deploy-deleter --user jane --clusterrole deploy-deleter
+clusterrolebinding.rbac.authorization.k8s.io/deploy-deleter created
+root@k8s-master-node:~# 
+##########
+user jim can delete deploy only in namespace red
+###########################
+root@k8s-master-node:~# k -n red create rolebinding deploy-deleter --user jim --clusterrole deploy-deleter
+rolebinding.rbac.authorization.k8s.io/deploy-deleter created
+root@k8s-master-node:~# 
+#lets test it 
+root@k8s-master-node:~# kubectl auth can-i delete deployment --as jane
+yes
+root@k8s-master-node:~# kubectl auth can-i delete deployment --as jane -A
+yes
+root@k8s-master-node:~# kubectl auth can-i delete pod --as jane -A
+no
+root@k8s-master-node:~# kubectl auth can-i delete deployment  --as jim
+no
+root@k8s-master-node:~# kubectl auth can-i delete deployment  --as jim -n red
+yes
+root@k8s-master-node:~# 
