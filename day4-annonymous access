@@ -83,4 +83,9 @@ spec:
     - kube-apiserver
     - --anonymous-auth=true #anonumous auth and set it to false
     - --advertise-address=10.128.0.9
-      
+##now once you enable it you can see that pod is now 1/1
+root@k8s-master-node:~# k -n kube-system get pod | grep api
+kube-apiserver-k8s-master-node            0/1     Running   1             47s
+root@k8s-master-node:~# k -n kube-system get pod | grep api
+kube-apiserver-k8s-master-node            1/1     Running   1             50s
+root@k8s-master-node:~# 
