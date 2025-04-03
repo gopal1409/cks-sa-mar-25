@@ -1,0 +1,89 @@
+@@@@@kubectl request-client - cert - https server - cert - api access
+  #make kubernetes api reachable from the outside
+  #we will also copy the kubeconfig and copy from master node 
+  #lets make the kubernetes svc as node port 
+  root@k8s-master-node:~# kubectl get svc
+NAME         TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE
+kubernetes   ClusterIP   10.96.0.1      <none>        443/TCP   16d
+nginx        ClusterIP   10.107.65.33   <none>        80/TCP    16d
+root@k8s-master-node:~# kubectl edit svc kubernetes
+piVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: "2025-03-17T12:09:05Z"
+  labels:
+    component: apiserver
+    provider: kubernetes
+  name: kubernetes
+  namespace: default
+  resourceVersion: "197"
+  uid: 4598f626-1674-4ae1-a065-49f1a0558769
+spec:
+  clusterIP: 10.96.0.1
+  clusterIPs:
+  - 10.96.0.1
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: https
+    port: 443
+    protocol: TCP
+    targetPort: 6443
+  sessionAffinity: None
+  type: NodePort #in place of cluster ip make it node port
+    
+status:
+  loadBalancer: {}
+~#3once done save the file 
+  root@k8s-master-node:~# kubectl get svc
+NAME         TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)         AGE
+kubernetes   NodePort    10.96.0.1      <none>        443:31705/TCP   16d
+nginx        ClusterIP   10.107.65.33   <none>        80/TCP          16d
+root@k8s-master-node:~# 
+##go to our local machine where you already have kubectl installed 
+  gopal@GOPA-DESK MINGW64 ~
+$ curl https://34.68.118.254:31705 -k
+{
+  "kind": "Status",
+  "apiVersion": "v1",
+  "metadata": {},
+  "status": "Failure",
+  "message": "forbidden: User \"system:anonymous\" cannot get path \"/\"",
+  "reason": "Forbidden",
+  "details": {},
+  "code": 403
+}
+gopal@GOPA-DESK MINGW64 ~
+##################it will show i can contact the kubernetes server but authorized as anonymous user 
+  #lets copy the kube config file from the master node 
+  kubectl config view --raw
+  ##copy it in a local machine file 
+  gopal@GOPA-DESK MINGW64 ~
+$ vi config
+##this will not work as it is tying to react to the private ip address 
+  #you need to do an host entry before that check the pki server 
+  root@k8s-master-node:~# cd /etc/kubernetes/pki/
+root@k8s-master-node:/etc/kubernetes/pki# ls
+apiserver-etcd-client.crt  apiserver-kubelet-client.crt  apiserver.crt  ca.crt  etcd                front-proxy-ca.key      front-proxy-client.key  sa.pub
+apiserver-etcd-client.key  apiserver-kubelet-client.key  apiserver.key  ca.key  front-proxy-ca.crt  front-proxy-client.crt  sa.key
+root@k8s-master-node:/etc/kubernetes/pki# 
+  ############
+ 
+                  
+  
+$ kubectl --kubeconfig config get ns
+                   run openssl inspect the certificate 
+  root@k8s-master-node:/etc/kubernetes/pki# openssl x509 -in apiserver.crt --text
+     X509v3 Subject Alternative Name: 
+                DNS:k8s-master-node, DNS:kubernetes, DNS:kubernetes.default, DNS:kubernetes.default.svc, DNS:kubernetes.default.svc.cluster.local, IP Address:10.96.0.1, IP 
+                  ###yopu will see the dns 
+                  #create a hosty entry in the host file
+                  $ vi config
+                  clusters:
+- cluster:
+    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURCVENDQWUyZ0F3SUJBZ0lJT2EwbnVWajJWU1F3RFFZSktvWklodmNOQVFFTEJRQXdGVEVUTUJFR0ExVUUKQXhNS2EzVmlaWEp1WlhSbGN6QWVGdzB5TlRBek1UY3hNakF6TlRKYUZ3MHpOVEF6TVRVeE1qQTROVEphTUJVeApFekFSQmdOVkJBTVRDbXQxWW1WeWJtVjBaWE13Z2dFaU1BMEdDU3FHU0liM0RRRUJBUVVBQTRJQkR3QXdnZ0VLCkFvSUJBUUNXRXlmZWVCU29UQm5ZcGJ5bG8ySit1THd4QVQwYXpOVXgza2lFaWk3UWZCN0lWeXpQVCt2alh5KzIKNmdDaGRDSUl4VFlxaUJGUXMzU1lmTkZnV05MU09xSWgvYWxmWER2N2RmMGJxbzJ1QklubTZjeCt1ZWRid3pIOApPQ3R3bW56QzFWdjl4TFZhZG4yeDV1azZuUTBkaStwdTVScFN1aUVkOFJIOXZOMU1NMHk3b2lKRjdUYm5mS1VZCk1JQWtYVUFIQm1rdFJjbG9DbGFtQWtKdnd4aDRramlGNWM2d1M0K2s5dDB4WW40N3EyMk02R2VIMUpiV09TYncKKzBuNGF1ZUlYQktHYWNMZlV1a0xFT05mU0tyY3BGQzJLRmlDOXpOczdKNU4xZ21QT0xJN2JFc2J6bHE4TDJsMwpiNFBJWG1JSXpUdFM1WktmM3lIYkVydU9NYUdKQWdNQkFBR2pXVEJYTUE0R0ExVWREd0VCL3dRRUF3SUNwREFQCkJnTlZIUk1CQWY4RUJUQURBUUgvTUIwR0ExVWREZ1FXQkJTNzNGZlgySFI1ZkFGNTBYR3lRbzE5RVJkRk1qQVYKQmdOVkhSRUVEakFNZ2dwcmRXSmxjbTVsZEdWek1BMEdDU3FHU0liM0RRRUJDd1VBQTRJQkFRQkEwTHYwSHdsagpCQS81bithamxoVmxqbm5JZGs3T3FaUnBURENvVkxMTlJRNytGdjNDMmk4UlVaakJWU1NiRjBSTWlqcWZYejJWCkprYk02NGtpR0JxOHlwR2dlKzdUdThRMVQvUkNSSnp3Vkw4b1ZzcFNMSWRHSlU2aFQvejQrdXVtN2pYaU9Iak8KRlFhclQ2ZEhpNUxlc0lURWtPekFtZjdqMzJJQk1FaDVNc3BPa2hYTU5wZ3BBbnJzSUZ6ckcrNnFJdi93MFZQRgpyLzkrdHovVFdaa00wS0ZJc3AzS001M09BT2hQQ0xEaUVVV0g2MkkrTGhQalBNWTg1bFhuRmNlcEJjUXpKNGFMClFqeXBsMHFCd0s4cUtUMGNPNmM5THgzUXB3bUwrTjAwcitSRVM5ZEJpeXU1dkRkZUpieTFHZGl0SHBReGUvY0IKVGlmMkVKWmdNd2lZCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+    server: https://kubernetes:31705
+  name: kubernetes
+##lets run again 
