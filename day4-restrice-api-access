@@ -1,0 +1,16 @@
+Re4strice APi access 
+  authentication autorization admission
+  connect to the api in different ways
+  restrics api access in various ways
+  #we will talk regress workflow
+  how to connecto to the kubernetes api. 
+  ##restriction
+  1. dont allow annonymous access 
+  close insecure port
+  dont expose the api server to the outside world
+  restrict access to node to api(Node Restriction)
+  prevention unathorized access using RBAC
+  prevent pods from accessing api
+  api server behind firewall. 
+  ###########################
+  
