@@ -1,0 +1,86 @@
+##we can make our k8s cluster anonumous access using true and false
+  kube-apiserver --anonymous-auth=tue|false
+  since 1.6 anonumous user enable by default
+  #we will now enable anonumus access tru and false
+  root@k8s-master-node:~# k get node
+NAME                STATUS   ROLES           AGE   VERSION
+k8s-master-node     Ready    control-plane   16d   v1.30.11
+k8s-worker-node-1   Ready    <none>          16d   v1.30.11
+k8s-worker-node-2   Ready    <none>          16d   v1.30.11
+root@k8s-master-node:~# vi /etc/kubernetes/manifests/kube-apiserver.yaml 
+oot@k8s-master-node:~# curl https://localhost:6443
+curl: (60) SSL certificate problem: unable to get local issuer certificate
+More details here: https://curl.se/docs/sslcerts.html
+
+curl failed to verify the legitimacy of the server and therefore could not
+establish a secure connection to it. To learn more about this situation and
+how to fix it, please visit the web page mentioned above.
+  #we will curl the same with localhost and accept the certificate you will see that anonumous access is disabled
+root@k8s-master-node:~# curl https://localhost:6443 -k
+{
+  "kind": "Status",
+  "apiVersion": "v1",
+  "metadata": {},
+  "status": "Failure",
+  "message": "forbidden: User \"system:anonymous\" cannot get path \"/\"",
+  "reason": "Forbidden",
+  "details": {},
+  "code": 403
+}root@k8s-master-node:~# 
+  #####this means our api server is accepting anonumous req we will diable it
+  root@k8s-master-node:~# vi /etc/kubernetes/manifests/kube-apiserver.yaml 
+  apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    kubeadm.kubernetes.io/kube-apiserver.advertise-address.endpoint: 10.128.0.9:6443
+  creationTimestamp: null
+  labels:
+    component: kube-apiserver
+    tier: control-plane
+  name: kube-apiserver
+  namespace: kube-system
+spec:
+  containers:
+  - command:
+    - kube-apiserver
+    - --anonymous-auth=false #anonumous auth and set it to false
+    - --advertise-address=10.128.0.9
+    - --allow-privileged=true
+    - --authorization-mode=Node,RBAC
+    - --client-ca-file=/etc/kubernetes/pki/ca.crt
+    - --enable-admission-plugins=NodeRestriction
+      #wait for few minutes till kuber-api server come back
+      #lets repeat our curl command there you will see the error anonumous disabled
+      root@k8s-master-node:~# k -n kube-system get pod | grep api
+kube-apiserver-k8s-master-node            0/1     Running   0              19s
+root@k8s-master-node:~# curl https://localhost:6443 -k
+{
+  "kind": "Status",
+  "apiVersion": "v1",
+  "metadata": {},
+  "status": "Failure",
+  "message": "Unauthorized",
+  "reason": "Unauthorized",
+  "code": 401
+
+    #############enable the anoumus access another wise api server is keep on fail,ing
+root@k8s-master-node:~# vi /etc/kubernetes/manifests/kube-apiserver.yaml 
+    apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    kubeadm.kubernetes.io/kube-apiserver.advertise-address.endpoint: 10.128.0.9:6443
+  creationTimestamp: null
+  labels:
+    component: kube-apiserver
+    tier: control-plane
+  name: kube-apiserver
+  namespace: kube-system
+spec:
+  containers:
+  - command:
+    - kube-apiserver
+    - --anonymous-auth=true #anonumous auth and set it to false
+    - --advertise-address=10.128.0.9
+      
