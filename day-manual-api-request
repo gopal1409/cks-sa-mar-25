@@ -1,0 +1,39 @@
+lets look into kubeconfig file and how to do manual request 
+   196  k config view
+  197  k config view --raw
+  #############
+  copy the certificate authority data from the config file
+  #lets decome the ca certificte
+  200  echo LS0tLS1CRUdJTi | base64 -d
+  #store the ca certificate in a file
+  201  echo LS0tLS1 | base64 -d > ca
+  ####################
+  next we will store the client certificate data 
+   205  echo LS0tLS1CRUdJT | base64 -d
+  #convert it and decode it and store in a crt file 
+  206  echo LS0tLS10K | base64 -d > crt
+  ##finalyl we will store the key file 
+  echo LS0tLS1CRUdJTiBSU0E | base64 -d > key
+  ###once you got ca crt and key
+  #lets get the server address using 
+  root@k8s-master-node:~# curl https://10.128.0.9:6443
+curl: (60) SSL certificate problem: unable to get local issuer certificate
+More details here: https://curl.se/docs/sslcerts.html
+
+curl failed to verify the legitimacy of the server and therefore could not
+establish a secure connection to it. To learn more about this situation and
+how to fix it, please visit the web page mentioned above.
+  ###################
+  root@k8s-master-node:~# curl https://10.128.0.9:6443 --cacert ca
+{
+  "kind": "Status",
+  "apiVersion": "v1",
+  "metadata": {},
+  "status": "Failure",
+  "message": "forbidden: User \"system:anonymous\" cannot get path \"/\"",
+  "reason": "Forbidden",
+  "details": {},
+  "code": 403
+    ############
+     220  curl https://10.128.0.9:6443 --cacert ca --cert crt --key key
+  #now ew can do api request toward kubernetes api
